@@ -1,18 +1,44 @@
 #!/usr/bin/env bash
-# This setup a web servers for the deployment of the web_static.
-apt update -y
-apt install -y nginx
+# Script sets up a web server for deployment of web_static.
+
+apt-get update
+apt-get install -y nginx
+
 mkdir -p /data/web_static/releases/test/
+ln -sf /data/web_static/releases/test/ /data/web_static/current
 mkdir -p /data/web_static/shared/
-echo "<!DOCTYPE html>
-<html>
+echo "<html>
   <head>
   </head>
   <body>
-    <p>Nginx server test</p>
+    Holberton School
   </body>
-</html>" | tee /data/web_static/releases/test/index.html
-ln -sf /data/web_static/releases/test/ /data/web_static/current
-chown -R ubuntu:ubuntu /data
-sudo sed -i '39 i\ \tlocation /hbnb_static {\n\t\talias /data/web_static/current;\n\t}\n' /etc/nginx/sites-enabled/default
-sudo service nginx restart
+</html>" > /data/web_static/releases/test/index.html
+
+chgrp -R ubuntu /data/
+chown -R ubuntu /data/
+
+printf %s "server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    add_header X-Served-By $HOSTNAME;
+    root   /var/www/html;
+    index  index.html index.htm;
+
+    location /hbnb_static {
+        alias /data/web_static/current;
+        index index.html index.htm;
+    }
+
+    location /redirect_me {
+        return 301 http://umohpyro.tech/;
+    }
+
+    error_page 404 /404.html;
+    location /404 {
+      root /var/www/html;
+      internal;
+    }
+}" > /etc/nginx/sites-available/default
+
+service nginx restart
